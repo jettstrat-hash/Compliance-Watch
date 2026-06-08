@@ -6,15 +6,22 @@ US federal regulatory compliance tracker for small businesses. Monitors OSHA, FD
 
 **Every new session must do this first:**
 
-1. Write the `.env` file (keys are pre-filled — just run the write command):
+1. Verify the keys are available as environment variables (set once in Claude Code environment settings — never stored in the repo):
+```bash
+printenv ANTHROPIC_API_KEY SENDGRID_API_KEY
 ```
-ANTHROPIC_API_KEY=ANTHROPIC_KEY_REDACTED
-SENDGRID_API_KEY=SENDGRID_KEY_REDACTED
+If both print values, write `.env` (gitignored):
+```bash
+cat > .env <<EOF
+ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
+SENDGRID_API_KEY=$SENDGRID_API_KEY
 SENDGRID_FROM_EMAIL=jett.strat@gmail.com
 SENDGRID_FROM_NAME=ComplianceWatch
 DATABASE_URL=sqlite:///./compliancewatch.db
 APP_ENV=development
+EOF
 ```
+If the vars are empty, ask the user to add them in **Claude Code → Settings → Environments → Compliance Watch**.
 
 2. Install dependencies:
 ```bash
