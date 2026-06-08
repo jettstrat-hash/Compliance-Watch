@@ -537,6 +537,69 @@ def urgent_text(reg, customer) -> str:
     return "\n".join(lines)
 
 
+def urgent_batch_subject(regulations: list) -> str:
+    n = len(regulations)
+    critical = sum(1 for r in regulations if r.analysis.severity == "critical")
+    if critical:
+        return f"Urgent: {critical} critical compliance alert{'s' if critical > 1 else ''} require immediate action"
+    return f"Urgent: {n} compliance alert{'s' if n > 1 else ''} require your attention"
+
+
+def urgent_batch_html(regulations: list, customer) -> str:
+    business = _esc(customer.business_name or customer.email)
+    n = len(regulations)
+    critical = sum(1 for r in regulations if r.analysis.severity == "critical")
+
+    if critical:
+        descriptor = f"{critical} CRITICAL ALERT{'S' if critical > 1 else ''}"
+    else:
+        descriptor = f"{n} URGENT ALERT{'S' if n > 1 else ''}"
+
+    return _compile(_wrap(
+        _masthead("Urgent Alerts", descriptor)
+        + _for_bar(business)
+        + _toc(regulations)
+        + _grouped_cards(regulations)
+        + _footer(customer)
+    ))
+
+
+def urgent_batch_text(regulations: list, customer) -> str:
+    n = len(regulations)
+    lines = [
+        "ComplianceWatch — Urgent Compliance Alerts",
+        f"For: {customer.business_name or customer.email}",
+        f"{n} urgent alert{'s' if n > 1 else ''} require your attention", "",
+    ]
+    for reg in regulations:
+        a = reg.analysis
+        days = _days_until(reg.effective_date)
+        lines += [
+            "=" * 62,
+            f"[{a.severity.upper()}] {reg.title}",
+            f"{reg.agency}  |  {reg.document_type}  |  Published {reg.published_date}",
+        ]
+        if days is not None:
+            lines.append(f"Effective in {days} days ({reg.effective_date})")
+        lines += ["", a.plain_english_summary]
+        if a.action_items:
+            lines += ["", "WHAT TO DO:"]
+            for i, item in enumerate(a.action_items, 1):
+                lines.append(f"  {i}. {item}")
+        if a.penalty_exposure:
+            lines += ["", f"PENALTY RISK: {a.penalty_exposure}"]
+        if reg.html_url:
+            lines += ["", f"Source: {reg.html_url}"]
+        lines.append("")
+    lines += [
+        "─" * 62,
+        "You're receiving this because you subscribed to ComplianceWatch.",
+        f"Unsubscribe: https://compliancewatch.app/unsubscribe?email={customer.email}",
+        "ComplianceWatch · Austin, TX 78701",
+    ]
+    return "\n".join(lines)
+
+
 def digest_subject(regulations: list, customer) -> str:
     n      = len(regulations)
     urgent = sum(1 for r in regulations if r.analysis.severity in ("critical", "high"))

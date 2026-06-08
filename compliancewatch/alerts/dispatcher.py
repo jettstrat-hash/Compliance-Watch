@@ -74,8 +74,9 @@ def _active_customers(db: Session) -> list[Customer]:
 
 def dispatch_urgent(db: Session) -> dict:
     """
-    Finds all undelivered critical/high regulations and sends one email
-    per customer who matches. Call this after every processing run.
+    Finds all undelivered critical/high regulations and sends one batched
+    email per customer containing all their relevant alerts. This avoids
+    flooding customers with separate emails when multiple rules drop at once.
     """
     customers = _active_customers(db)
     if not customers:
@@ -92,32 +93,40 @@ def dispatch_urgent(db: Session) -> dict:
     sent = 0
     skipped = 0
 
-    for reg in urgent_regs:
-        for customer in customers:
-            if not customer.industries:
-                continue
-            if not _industries_match(customer.industries, reg.analysis.affected_industries):
-                skipped += 1
-                continue
-            if _already_delivered(db, customer.id, reg.id):
-                skipped += 1
-                continue
+    for customer in customers:
+        if not customer.industries:
+            skipped += 1
+            continue
 
-            msg = sender.EmailMessage(
-                to_email=customer.email,
-                subject=templates.urgent_subject(reg),
-                html_content=templates.urgent_html(reg, customer),
-                text_content=templates.urgent_text(reg, customer),
-            )
-            success = sender.send_email(msg)
-            if success:
+        new_regs = [
+            r for r in urgent_regs
+            if _industries_match(customer.industries, r.analysis.affected_industries)
+            and not _already_delivered(db, customer.id, r.id)
+        ]
+
+        if not new_regs:
+            skipped += 1
+            continue
+
+        # Sort: critical first, then by effective date proximity
+        new_regs.sort(key=lambda r: (
+            0 if r.analysis.severity == "critical" else 1,
+            r.effective_date or date.max,
+        ))
+
+        msg = sender.EmailMessage(
+            to_email=customer.email,
+            subject=templates.urgent_batch_subject(new_regs),
+            html_content=templates.urgent_batch_html(new_regs, customer),
+            text_content=templates.urgent_batch_text(new_regs, customer),
+        )
+        success = sender.send_email(msg)
+        if success:
+            for reg in new_regs:
                 _record_delivery(db, customer.id, reg.id, "urgent")
-                sent += 1
-            else:
-                logger.error(
-                    "Failed urgent delivery: customer %d, regulation %d",
-                    customer.id, reg.id,
-                )
+            sent += 1
+        else:
+            logger.error("Failed urgent batch delivery for customer %d", customer.id)
 
     logger.info("Urgent dispatch: %d sent, %d skipped", sent, skipped)
     return {"sent": sent, "skipped": skipped}
