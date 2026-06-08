@@ -1,9 +1,12 @@
 """
 MJML-based email templates for ComplianceWatch.
 
-Design language: dark branded header, severity chip badges, urgency countdown
-banners, inset action blocks, monospace CFR pills — cross-client compatible
-(Outlook, Gmail, Apple Mail, mobile).
+Design language: modern newsletter (Morning Brew / Axios / TLDR aesthetic)
+  - Full-width branded masthead with issue metadata
+  - "In this issue" table of contents
+  - Story-card format per regulation: deck → summary → bottom line → actions → CTA button
+  - Section headers grouping cards by urgency tier
+  - mj-button CTAs, proper visual hierarchy, warm palette
 
 Install: pip install mjml
 """
@@ -13,39 +16,38 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# ── Severity ──────────────────────────────────────────────────────────────────
+# ── Severity config ────────────────────────────────────────────────────────────
 
 SEVERITY_COLOR = {
-    "critical":      "#DC2626",
-    "high":          "#D97706",
-    "medium":        "#2563EB",
-    "low":           "#059669",
-    "informational": "#64748B",
+    "critical":      "#B91C1C",
+    "high":          "#B45309",
+    "medium":        "#1D4ED8",
+    "low":           "#047857",
+    "informational": "#475569",
 }
 
-# Lighter tint of each severity color used for chip backgrounds
 SEVERITY_BG = {
-    "critical":      "#FEF2F2",
-    "high":          "#FFFBEB",
-    "medium":        "#EFF6FF",
-    "low":           "#F0FDF4",
-    "informational": "#F8FAFC",
+    "critical":      "#FEE2E2",
+    "high":          "#FEF3C7",
+    "medium":        "#DBEAFE",
+    "low":           "#D1FAE5",
+    "informational": "#F1F5F9",
 }
 
 SEVERITY_LABEL = {
-    "critical":      "Critical",
-    "high":          "High Priority",
-    "medium":        "Medium",
-    "low":           "Low",
-    "informational": "Informational",
+    "critical":      "CRITICAL",
+    "high":          "HIGH PRIORITY",
+    "medium":        "MEDIUM",
+    "low":           "LOW",
+    "informational": "INFORMATIONAL",
 }
 
-SEVERITY_ACTION = {
-    "critical":      "Immediate Action Required",
-    "high":          "Action Within 30 Days",
-    "medium":        "Action Within 90 Days",
-    "low":           "For Your Awareness",
-    "informational": "Proposed Rule — Comment Period Open",
+SEVERITY_SECTION = {
+    "critical":      ("URGENT ACTION REQUIRED",  "#7F1D1D", "#FEF2F2"),
+    "high":          ("ACTION WITHIN 30 DAYS",   "#78350F", "#FFFBEB"),
+    "medium":        ("ACTION WITHIN 90 DAYS",   "#1E3A8A", "#EFF6FF"),
+    "low":           ("FOR YOUR AWARENESS",       "#064E3B", "#ECFDF5"),
+    "informational": ("MONITORING",               "#334155", "#F8FAFC"),
 }
 
 DOC_TYPE_LABEL = {
@@ -54,43 +56,44 @@ DOC_TYPE_LABEL = {
     "NOTICE":  "Notice",
 }
 
-DOC_TYPE_COLOR = {
-    "RULE":    "#1D4ED8",
-    "PRORULE": "#7C3AED",
-    "NOTICE":  "#0369A1",
-}
-
 # ── Design tokens ─────────────────────────────────────────────────────────────
 
-FONT  = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica Neue, Arial, sans-serif"
-MONO  = "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace"
+FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica Neue, Arial, sans-serif"
+MONO = "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace"
 
 # Page
-BG       = "#EAECF0"   # slightly warm gray page bg
+BG        = "#F0F2F5"
 
-# Header (dark branded bar)
-HDR_BG   = "#0F172A"   # slate-900
-HDR_TEXT = "#F8FAFC"   # near-white
-HDR_SUB  = "#94A3B8"   # slate-400 muted label
+# Masthead
+MAST_BG   = "#0F172A"   # slate-900
+MAST_LINE = "#F59E0B"   # amber accent stripe
+MAST_TEXT = "#F8FAFC"
+MAST_META = "#94A3B8"
 
-# Cards
-WHITE    = "#FFFFFF"
-BORDER   = "#E2E8F0"
-STRIPE   = "#F8FAFC"   # inset block bg
+# Cards / content
+WHITE     = "#FFFFFF"
+BORDER    = "#E2E8F0"
+DIVIDER   = "#CBD5E1"
+STRIPE    = "#F8FAFC"
 
 # Typography
-TEXT     = "#374151"
-TEXT_DK  = "#111827"
-TEXT_SM  = "#6B7280"
-TEXT_XS  = "#9CA3AF"
+TEXT      = "#334155"
+TEXT_DK   = "#0F172A"
+TEXT_MID  = "#475569"
+TEXT_SM   = "#64748B"
+TEXT_XS   = "#94A3B8"
 
-# Link
-ACCENT   = "#1D4ED8"
+# Callout box ("The bottom line")
+BTL_BG    = "#FFFBEB"
+BTL_LEFT  = "#F59E0B"
+BTL_TEXT  = "#92400E"
 
-# Urgency banner
-URGENCY_BG     = "#FFF7ED"
-URGENCY_BORDER = "#FDBA74"
-URGENCY_TEXT   = "#9A3412"
+# Button
+BTN_BG    = "#0F172A"
+BTN_TEXT  = "#F8FAFC"
+
+# Links
+ACCENT    = "#1D4ED8"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -120,7 +123,7 @@ def _head() -> str:
     return f"""  <mj-head>
     <mj-attributes>
       <mj-all font-family="{FONT}" />
-      <mj-text font-size="15px" line-height="1.65" color="{TEXT}" padding="0" />
+      <mj-text font-size="15px" line-height="1.7" color="{TEXT}" padding="0" />
       <mj-section background-color="{BG}" padding="0" />
       <mj-column padding="0" />
     </mj-attributes>
@@ -131,274 +134,263 @@ def _head() -> str:
   </mj-head>"""
 
 
-def _header(label: str, sub: str = "") -> str:
-    sub_row = (
-        f'<tr><td style="padding-top:4px;font-size:12px;color:{HDR_SUB};">{sub}</td></tr>'
-        if sub else ""
-    )
+def _masthead(category: str, sub: str) -> str:
+    today = date.today().strftime("%B %d, %Y").upper()
     return f"""
-  <mj-section background-color="{HDR_BG}" padding="28px 0 24px 0">
+  <!-- amber top stripe -->
+  <mj-section background-color="{MAST_LINE}" padding="4px 0" />
+
+  <!-- main masthead -->
+  <mj-section background-color="{MAST_BG}" padding="24px 0 20px 0">
     <mj-column>
       <mj-text>
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td>
-              <table cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="width:6px;background:{ACCENT};border-radius:2px;">&nbsp;</td>
-                  <td style="padding-left:12px;">
-                    <table cellpadding="0" cellspacing="0" border="0">
-                      <tr><td style="font-size:20px;font-weight:800;color:{HDR_TEXT};
-                               letter-spacing:-0.5px;line-height:1;">ComplianceWatch</td></tr>
-                      {sub_row}
-                    </table>
-                  </td>
-                </tr>
-              </table>
+            <td valign="middle">
+              <div style="font-size:26px;font-weight:900;color:{MAST_TEXT};
+                          letter-spacing:-0.8px;line-height:1;">ComplianceWatch</div>
+              <div style="font-size:11px;font-weight:600;color:{MAST_LINE};
+                          text-transform:uppercase;letter-spacing:2px;
+                          margin-top:5px;">{category}</div>
             </td>
             <td align="right" valign="middle">
-              <span style="display:inline-block;background:rgba(255,255,255,0.1);
-                           color:{HDR_TEXT};font-size:11px;font-weight:600;
-                           text-transform:uppercase;letter-spacing:1px;
-                           padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.15);">
-                {label}
-              </span>
+              <div style="font-size:10px;color:{MAST_META};text-align:right;
+                          text-transform:uppercase;letter-spacing:0.8px;
+                          line-height:1.8;">
+                {today}<br>{sub}
+              </div>
             </td>
           </tr>
         </table>
       </mj-text>
     </mj-column>
+  </mj-section>
+
+  <!-- bottom rule -->
+  <mj-section background-color="{MAST_BG}" padding="0 0 0 0">
+    <mj-column>
+      <mj-divider border-color="rgba(255,255,255,0.08)" border-width="1px" padding="0" />
+    </mj-column>
   </mj-section>"""
 
 
-def _intro(business: str, headline: str, body: str) -> str:
+def _toc(regulations: list) -> str:
+    rows = ""
+    for i, reg in enumerate(regulations, 1):
+        color = SEVERITY_COLOR.get(reg.analysis.severity, "#475569")
+        bg    = SEVERITY_BG.get(reg.analysis.severity, "#F1F5F9")
+        label = SEVERITY_LABEL.get(reg.analysis.severity, "")
+        rows += f"""<tr>
+          <td width="28" valign="top" style="padding:6px 0;">
+            <span style="font-size:12px;font-weight:700;color:{TEXT_SM};">{i}.</span>
+          </td>
+          <td style="padding:6px 0 6px 4px;">
+            <span style="display:inline-block;font-size:10px;font-weight:700;
+                         background:{bg};color:{color};padding:2px 8px;
+                         border-radius:20px;margin-right:8px;text-transform:uppercase;
+                         letter-spacing:0.5px;">{label}</span>
+            <span style="font-size:13px;color:{TEXT_DK};font-weight:500;
+                         line-height:1.4;">{_esc(reg.title[:90])}{'...' if len(reg.title) > 90 else ''}</span>
+          </td>
+        </tr>"""
+
     return f"""
-  <mj-section padding="16px 0 0 0">
-    <mj-column background-color="{WHITE}" padding="28px 32px 24px 32px"
-               border-bottom="3px solid {ACCENT}">
-      <mj-text font-size="11px" font-weight="600" color="{TEXT_SM}" padding="0 0 8px 0"
-               letter-spacing="0.5px" text-transform="uppercase">For {business}</mj-text>
-      <mj-text font-size="22px" font-weight="800" color="{TEXT_DK}" line-height="1.3"
-               padding="0 0 14px 0" letter-spacing="-0.3px">{headline}</mj-text>
-      <mj-text font-size="15px" color="{TEXT}" line-height="1.7" padding="0">
-        {body}
+  <mj-section padding="0 0 12px 0">
+    <mj-column background-color="{WHITE}" padding="24px 32px">
+      <mj-text>
+        <p style="margin:0 0 14px 0;font-size:11px;font-weight:700;color:{TEXT_SM};
+                  text-transform:uppercase;letter-spacing:1.2px;">In this issue</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">{rows}</table>
       </mj-text>
     </mj-column>
   </mj-section>"""
 
 
-def _severity_chip(severity: str) -> str:
-    color  = SEVERITY_COLOR.get(severity, "#64748B")
-    bg     = SEVERITY_BG.get(severity, "#F8FAFC")
-    label  = SEVERITY_LABEL.get(severity, severity.upper())
-    action = SEVERITY_ACTION.get(severity, "")
-    return (
-        f'<span style="display:inline-block;background:{bg};color:{color};'
-        f'font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;'
-        f'padding:4px 10px;border-radius:20px;border:1px solid {color};">'
-        f'{label}</span>'
-        f'&nbsp;&nbsp;'
-        f'<span style="font-size:12px;color:{TEXT_SM};font-weight:500;">{action}</span>'
-    )
-
-
-def _doc_chip(doc_type: str) -> str:
-    label = DOC_TYPE_LABEL.get(doc_type, doc_type)
-    color = DOC_TYPE_COLOR.get(doc_type, ACCENT)
-    return (
-        f'<span style="display:inline-block;font-size:10px;font-weight:600;'
-        f'text-transform:uppercase;letter-spacing:0.6px;color:{color};">{label}</span>'
-    )
-
-
-def _urgency_banner(days: int, effective_date) -> str:
-    if days == 0:
-        msg = "This rule is <strong>effective today.</strong> Ensure compliance immediately."
-    elif days == 1:
-        msg = "This rule takes effect <strong>tomorrow.</strong> Final preparations required now."
-    else:
-        msg = (f"This rule takes effect in <strong>{days} days</strong> "
-               f"({effective_date}). Review your compliance status now.")
-    return f"""<tr><td style="padding-top:20px;">
-      <table width="100%" cellpadding="0" cellspacing="0" border="0"
-             style="background:{URGENCY_BG};border:1px solid {URGENCY_BORDER};
-                    border-radius:6px;padding:14px 18px;">
-        <tr>
-          <td style="font-size:13px;color:{URGENCY_TEXT};line-height:1.6;">
-            <span style="font-size:15px;margin-right:8px;">&#9888;</span>
-            {msg}
-          </td>
-        </tr>
-      </table>
-    </td></tr>"""
+def _section_header(severity: str) -> str:
+    label, color, bg = SEVERITY_SECTION.get(severity, ("UPDATES", TEXT_SM, STRIPE))
+    return f"""
+  <mj-section padding="20px 0 0 0">
+    <mj-column background-color="{bg}" padding="10px 32px">
+      <mj-text>
+        <span style="font-size:10px;font-weight:800;color:{color};
+                     text-transform:uppercase;letter-spacing:1.8px;">{label}</span>
+      </mj-text>
+    </mj-column>
+  </mj-section>"""
 
 
 def _card(reg) -> str:
     a     = reg.analysis
-    color = SEVERITY_COLOR.get(a.severity, "#64748B")
+    color = SEVERITY_COLOR.get(a.severity, "#475569")
+    bg    = SEVERITY_BG.get(a.severity, "#F1F5F9")
+    label = SEVERITY_LABEL.get(a.severity, a.severity.upper())
+    dtype = DOC_TYPE_LABEL.get(reg.document_type, reg.document_type)
     days  = _days_until(reg.effective_date)
 
-    # urgency banner for imminent deadlines
-    if days is not None and days <= 30:
-        urgency_row = _urgency_banner(days, reg.effective_date)
+    # deadline line
+    if days is not None:
+        if days == 0:
+            deadline = f'<span style="color:#B91C1C;font-weight:700;">Effective TODAY</span>'
+        elif days <= 14:
+            deadline = (f'<span style="color:#B91C1C;font-weight:700;">'
+                        f'Effective in {days} day{"s" if days != 1 else ""} &mdash; {reg.effective_date}</span>')
+        elif days <= 30:
+            deadline = (f'<span style="color:#B45309;font-weight:600;">'
+                        f'Effective {reg.effective_date} ({days} days)</span>')
+        else:
+            deadline = f'<span style="color:{TEXT_SM};">Effective {reg.effective_date} &mdash; {days} days away</span>'
+        deadline_row = f'<tr><td style="padding-top:2px;font-size:12px;">{deadline}</td></tr>'
     elif a.effective_date_note:
-        urgency_row = (
-            f'<tr><td style="padding-top:16px;font-size:13px;color:{TEXT_SM};">'
+        deadline_row = (
+            f'<tr><td style="padding-top:2px;font-size:12px;color:{TEXT_SM};">'
             f'{_esc(a.effective_date_note)}</td></tr>'
         )
     else:
-        urgency_row = ""
+        deadline_row = ""
 
-    # effective date when > 30 days
-    if days is not None and days > 30:
-        eff_row = (
-            f'<tr><td style="padding-top:14px;font-size:13px;color:{TEXT_SM};">'
-            f'Effective {reg.effective_date} &mdash; {days} days from now</td></tr>'
-        )
-    else:
-        eff_row = ""
+    # meta chips
+    meta = (
+        f'<span style="display:inline-block;background:{bg};color:{color};'
+        f'font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;'
+        f'text-transform:uppercase;letter-spacing:0.6px;">{label}</span>'
+        f'&nbsp;&nbsp;'
+        f'<span style="font-size:11px;color:{TEXT_SM};">{_esc(reg.agency)}</span>'
+        f'&nbsp;&middot;&nbsp;'
+        f'<span style="font-size:11px;color:{TEXT_SM};">{dtype}</span>'
+        f'&nbsp;&middot;&nbsp;'
+        f'<span style="font-size:11px;color:{TEXT_SM};">{reg.published_date}</span>'
+    )
 
-    # numbered action items
+    # "the bottom line" callout
+    btl = (
+        f'<tr><td style="padding-top:20px;">'
+        f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
+        f' style="border-left:3px solid {BTL_LEFT};background:{BTL_BG};'
+        f'padding:14px 18px;border-radius:0 6px 6px 0;">'
+        f'<tr><td style="font-size:10px;font-weight:800;color:{BTL_TEXT};'
+        f'text-transform:uppercase;letter-spacing:1.2px;padding-bottom:6px;">'
+        f'&#9660;&nbsp; The Bottom Line</td></tr>'
+        f'<tr><td style="font-size:14px;color:{BTL_TEXT};font-weight:500;line-height:1.6;">'
+        f'{_esc(a.plain_english_summary)}</td></tr>'
+        f'</table></td></tr>'
+    )
+
+    # action steps
     if a.action_items:
-        rows = "".join(
+        steps = "".join(
             f'<tr>'
-            f'<td width="28" valign="top" style="padding:7px 0;">'
-            f'<span style="display:inline-block;width:22px;height:22px;line-height:22px;'
-            f'text-align:center;background:{color};color:#fff;font-size:11px;font-weight:700;'
-            f'border-radius:50%;">{i + 1}</span></td>'
-            f'<td style="padding:7px 0 7px 8px;font-size:14px;color:{TEXT_DK};line-height:1.55;">'
+            f'<td width="32" valign="top" style="padding:5px 0;">'
+            f'<span style="display:inline-block;width:20px;height:20px;line-height:20px;'
+            f'text-align:center;background:{TEXT_DK};color:#fff;'
+            f'font-size:10px;font-weight:700;border-radius:4px;">{i + 1}</span>'
+            f'</td>'
+            f'<td style="padding:5px 0 5px 8px;font-size:13px;color:{TEXT_DK};line-height:1.55;">'
             f'{_esc(item)}</td>'
             f'</tr>'
             for i, item in enumerate(a.action_items)
         )
-        actions = f"""<tr><td style="padding-top:22px;">
-          <p style="margin:0 0 12px 0;font-size:11px;font-weight:700;color:{TEXT_SM};
-              text-transform:uppercase;letter-spacing:1px;">&#10003;&nbsp; What To Do</p>
-          <table width="100%" cellpadding="0" cellspacing="0" border="0"
-                 style="background:{STRIPE};padding:12px 16px;border-radius:6px;
-                        border-left:3px solid {color};">{rows}</table>
-        </td></tr>"""
+        actions = (
+            f'<tr><td style="padding-top:20px;">'
+            f'<p style="margin:0 0 12px 0;font-size:10px;font-weight:800;color:{TEXT_SM};'
+            f'text-transform:uppercase;letter-spacing:1.2px;">What to do</p>'
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
+            f' style="background:{STRIPE};border-radius:8px;padding:12px 16px;">{steps}</table>'
+            f'</td></tr>'
+        )
     else:
         actions = ""
 
     # penalty
-    penalty = (
-        f'<tr><td style="padding-top:20px;">'
-        f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
-        f' style="background:#FFF1F2;border-radius:6px;padding:12px 16px;">'
-        f'<tr><td style="font-size:11px;font-weight:700;color:#9F1239;'
-        f'text-transform:uppercase;letter-spacing:0.8px;padding-bottom:6px;">'
-        f'&#9888; Penalty Risk</td></tr>'
-        f'<tr><td style="font-size:13px;color:#881337;line-height:1.6;">'
-        f'{_esc(a.penalty_exposure)}</td></tr>'
-        f'</table></td></tr>'
-        if a.penalty_exposure else ""
-    )
+    if a.penalty_exposure:
+        penalty = (
+            f'<tr><td style="padding-top:16px;">'
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
+            f' style="background:#FFF1F2;border-radius:6px;padding:10px 14px;">'
+            f'<tr><td style="font-size:10px;font-weight:800;color:#9F1239;'
+            f'text-transform:uppercase;letter-spacing:1px;padding-bottom:4px;">'
+            f'&#9888; Penalty Risk</td></tr>'
+            f'<tr><td style="font-size:12px;color:#881337;line-height:1.6;">'
+            f'{_esc(a.penalty_exposure)}</td></tr>'
+            f'</table></td></tr>'
+        )
+    else:
+        penalty = ""
 
-    # monospace CFR citations
+    # CFR refs
     if a.relevant_cfr_sections:
-        codes = " ".join(
+        tags = " ".join(
             f'<code style="font-family:{MONO};font-size:11px;background:{STRIPE};'
-            f'color:{TEXT_DK};padding:3px 8px;border-radius:4px;'
-            f'border:1px solid {BORDER};display:inline-block;margin:2px 4px 2px 0;">'
+            f'color:{TEXT_DK};padding:3px 8px;border-radius:4px;border:1px solid {BORDER};">'
             f'{_esc(s)}</code>'
             for s in a.relevant_cfr_sections
         )
         cfr = (
-            f'<tr><td style="padding-top:18px;">'
-            f'<p style="margin:0 0 8px 0;font-size:11px;font-weight:700;color:{TEXT_SM};'
-            f'text-transform:uppercase;letter-spacing:0.8px;">CFR References</p>'
-            f'<div style="line-height:2.0;">{codes}</div></td></tr>'
+            f'<tr><td style="padding-top:16px;">'
+            f'<span style="font-size:10px;font-weight:700;color:{TEXT_SM};'
+            f'text-transform:uppercase;letter-spacing:1px;">CFR References&nbsp;&nbsp;</span>'
+            f'{tags}</td></tr>'
         )
     else:
         cfr = ""
 
-    source = (
-        f'<tr><td style="padding-top:20px;border-top:1px solid {BORDER};">'
-        f'<a href="{reg.html_url}" '
-        f'style="font-size:13px;color:{ACCENT};font-weight:600;text-decoration:none;">'
-        f'Read the full rule on Federal Register &nbsp;&rarr;</a></td></tr>'
-        if reg.html_url else ""
-    )
+    # CTA button row
+    btn_url = reg.html_url or "#"
+    button = f"""
+  <mj-section padding="0">
+    <mj-column background-color="{WHITE}" padding="0 32px 28px 32px">
+      <mj-button background-color="{BTN_BG}" color="{BTN_TEXT}"
+                 font-size="12px" font-weight="700" letter-spacing="0.5px"
+                 border-radius="6px" padding="12px 24px"
+                 align="left" href="{btn_url}"
+                 inner-padding="0">
+        Read Full Rule on Federal Register &nbsp;&#8594;
+      </mj-button>
+    </mj-column>
+  </mj-section>"""
 
-    return f"""
-  <mj-section padding="12px 0 0 0">
-    <mj-column border-left="4px solid {color}" background-color="{WHITE}"
-               padding="22px 28px 24px 28px">
+    card_body = f"""
+  <mj-section padding="0">
+    <mj-column background-color="{WHITE}" border-left="3px solid {color}"
+               padding="24px 32px 20px 28px">
       <mj-text>
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
 
-          <!-- severity chip + doc type row -->
-          <tr><td style="padding-bottom:16px;">
-            {_severity_chip(a.severity)}<br>
-            <span style="margin-top:8px;display:inline-block;">
-              {_doc_chip(reg.document_type)}
-              <span style="margin:0 6px;color:{BORDER};">&middot;</span>
-              <span style="font-size:11px;color:{TEXT_XS};">{_esc(reg.agency)}</span>
-              <span style="margin:0 6px;color:{BORDER};">&middot;</span>
-              <span style="font-size:11px;color:{TEXT_XS};">{reg.published_date}</span>
-            </span>
-          </td></tr>
+          <!-- meta row -->
+          <tr><td style="padding-bottom:14px;">{meta}</td></tr>
 
-          <!-- title -->
-          <tr><td style="padding-bottom:16px;border-bottom:1px solid {BORDER};">
-            <span style="font-size:18px;font-weight:800;color:{TEXT_DK};line-height:1.3;
-                         letter-spacing:-0.2px;">
+          <!-- headline -->
+          <tr><td style="padding-bottom:4px;border-bottom:2px solid {BORDER};">
+            <span style="font-size:20px;font-weight:800;color:{TEXT_DK};
+                         letter-spacing:-0.3px;line-height:1.3;">
               {_esc(reg.title)}
             </span>
           </td></tr>
 
-          <!-- summary -->
-          <tr><td style="padding-top:16px;font-size:15px;color:{TEXT};line-height:1.7;">
-            {_esc(a.plain_english_summary)}
-          </td></tr>
+          <!-- deadline -->
+          {deadline_row}
 
-          {urgency_row}
-          {eff_row}
+          {btl}
           {actions}
           {penalty}
           {cfr}
-          {source}
 
         </table>
       </mj-text>
     </mj-column>
   </mj-section>"""
 
+    return card_body + (button if reg.html_url else "") + f"""
+  <mj-section padding="0 0 2px 0">
+    <mj-column background-color="{BG}" padding="6px 0" />
+  </mj-section>"""
 
-def _digest_summary_bar(regulations: list) -> str:
-    by_sev = {}
-    for r in regulations:
-        s = r.analysis.severity
-        by_sev[s] = by_sev.get(s, 0) + 1
 
-    order = ["critical", "high", "medium", "low", "informational"]
-    cells = []
-    for sev in order:
-        n = by_sev.get(sev, 0)
-        if not n:
-            continue
-        color = SEVERITY_COLOR[sev]
-        bg    = SEVERITY_BG[sev]
-        label = SEVERITY_LABEL[sev]
-        cells.append(
-            f'<td style="padding:0 8px 0 0;">'
-            f'<span style="display:inline-block;background:{bg};color:{color};'
-            f'font-size:12px;font-weight:700;padding:6px 14px;border-radius:20px;'
-            f'border:1px solid {color};">{n} {label}</span>'
-            f'</td>'
-        )
-
-    if not cells:
-        return ""
-
+def _for_business_bar(business: str) -> str:
     return f"""
-  <mj-section padding="0 0 0 0">
-    <mj-column background-color="{WHITE}" padding="16px 32px">
-      <mj-text>
-        <table cellpadding="0" cellspacing="0" border="0">
-          <tr>{"".join(cells)}</tr>
-        </table>
+  <mj-section padding="0">
+    <mj-column background-color="{MAST_BG}" padding="12px 32px">
+      <mj-text font-size="12px" color="{MAST_META}">
+        Personalized for <strong style="color:{MAST_TEXT};">{business}</strong>
       </mj-text>
     </mj-column>
   </mj-section>"""
@@ -406,10 +398,12 @@ def _digest_summary_bar(regulations: list) -> str:
 
 def _footer(customer) -> str:
     return f"""
-  <mj-section padding="24px 0 40px 0" background-color="{BG}">
+  <mj-section padding="28px 0 40px 0">
     <mj-column>
-      <mj-text font-size="11px" color="{TEXT_XS}" align="center" line-height="2.0">
-        You're receiving this because you subscribed to <strong>ComplianceWatch</strong>.<br>
+      <mj-divider border-color="{DIVIDER}" border-width="1px" padding="0 0 24px 0" />
+      <mj-text font-size="11px" color="{TEXT_XS}" align="center" line-height="2.1">
+        You're subscribed to <strong style="color:{TEXT_SM};">ComplianceWatch</strong>
+        &nbsp;&mdash;&nbsp; regulatory monitoring for small business.<br>
         <a href="https://compliancewatch.app/unsubscribe?email={customer.email}"
            style="color:{TEXT_SM};text-decoration:underline;">Unsubscribe</a>
         &nbsp;&nbsp;&middot;&nbsp;&nbsp;
@@ -434,6 +428,26 @@ def _wrap(content: str) -> str:
 </mjml>"""
 
 
+# ── Cards grouped by severity tier ────────────────────────────────────────────
+
+def _grouped_cards(regulations: list) -> str:
+    order = ["critical", "high", "medium", "low", "informational"]
+    by_sev: dict = {s: [] for s in order}
+    for reg in regulations:
+        s = reg.analysis.severity
+        by_sev.setdefault(s, []).append(reg)
+
+    out = ""
+    for sev in order:
+        regs = by_sev.get(sev, [])
+        if not regs:
+            continue
+        out += _section_header(sev)
+        for reg in regs:
+            out += _card(reg)
+    return out
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def urgent_subject(reg) -> str:
@@ -444,25 +458,20 @@ def urgent_subject(reg) -> str:
 
 
 def urgent_html(reg, customer) -> str:
-    a        = reg.analysis
     business = _esc(customer.business_name or customer.email)
     days     = _days_until(reg.effective_date)
 
-    if days is not None and days <= 30:
-        intro_headline = f"A rule affecting your business takes effect in {days} days"
-    elif a.severity == "critical":
-        intro_headline = "A critical federal regulation requires your immediate attention"
+    if days is not None and days <= 14:
+        sub = f"{days} DAYS TO COMPLY"
+    elif days is not None and days <= 30:
+        sub = "ACTION REQUIRED"
     else:
-        intro_headline = "A federal regulation affecting your business requires attention"
+        sub = "COMPLIANCE ALERT"
 
     return _compile(_wrap(
-        _header("Compliance Alert", sub="Regulatory update for your business")
-        + _intro(
-            business,
-            intro_headline,
-            "We monitor federal agencies so you don't have to. "
-            "Review the details and recommended actions below.",
-        )
+        _masthead("Compliance Alert", sub)
+        + _for_business_bar(business)
+        + _section_header(reg.analysis.severity)
         + _card(reg)
         + _footer(customer)
     ))
@@ -513,20 +522,13 @@ def digest_html(regulations: list, customer) -> str:
     business = _esc(customer.business_name or customer.email)
     n      = len(regulations)
     urgent = sum(1 for r in regulations if r.analysis.severity in ("critical", "high"))
-
-    body = (
-        f"You have <strong style='color:{TEXT_DK};'>{urgent} urgent "
-        f"item{'s' if urgent > 1 else ''}</strong> requiring action, "
-        f"plus {n - urgent} additional update{'s' if n - urgent != 1 else ''}."
-        if urgent else
-        f"Here are this week's {n} compliance update{'s' if n != 1 else ''} relevant to your business."
-    )
+    issue  = f"{n} UPDATE{'S' if n != 1 else ''} THIS WEEK"
 
     return _compile(_wrap(
-        _header("Weekly Digest", sub=f"Week of {date.today().strftime('%B %d, %Y')}")
-        + _intro(business, "Your weekly compliance briefing", body)
-        + _digest_summary_bar(regulations)
-        + "\n".join(_card(r) for r in regulations)
+        _masthead("Weekly Digest", issue)
+        + _for_business_bar(business)
+        + _toc(regulations)
+        + _grouped_cards(regulations)
         + _footer(customer)
     ))
 
