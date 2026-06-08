@@ -131,8 +131,8 @@ python scripts/run_alerts.py --digest --force
 ## Roadmap (in order)
 
 - [x] 1. Automated scheduler
-- [ ] 2. End-to-end pipeline test (current — blocked on Unrestricted networking in environment)
-- [ ] 3. Landing page
+- [x] 2. End-to-end pipeline test (complete — 6 regs seeded, processed via Claude Batch API, 5 urgent emails delivered to jett.strat@gmail.com)
+- [ ] 3. Landing page (next)
 - [ ] 4. Customer signup + industry selection
 - [ ] 5. Stripe billing
 

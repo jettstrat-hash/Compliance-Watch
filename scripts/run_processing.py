@@ -18,7 +18,8 @@ import logging
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
-load_dotenv()
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(ROOT, ".env"))
 
 from compliancewatch.database import create_tables, SessionLocal
 from compliancewatch.models import Regulation, RegulationAnalysis

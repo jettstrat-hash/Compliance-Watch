@@ -133,7 +133,7 @@ def _head() -> str:
 
 
 def _masthead(label: str, descriptor: str) -> str:
-    today = date.today().strftime("%B %-d, %Y").upper()
+    today = date.today().strftime("%B {d}, %Y".replace("{d}", str(date.today().day))).upper()
     return f"""
   <!-- top amber rule -->
   <mj-section background-color="{AMBER}" padding="5px 0" />
