@@ -138,29 +138,24 @@ def _masthead(label: str, descriptor: str) -> str:
   <!-- top amber rule -->
   <mj-section background-color="{AMBER}" padding="5px 0" />
 
-  <!-- masthead -->
-  <mj-section background-color="{MAST_BG}" padding="28px 0 22px 0">
+  <!-- masthead: single column, stacked — safe on all mobile widths -->
+  <mj-section background-color="{MAST_BG}" padding="26px 0 8px 0">
     <mj-column>
-      <mj-text>
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td valign="bottom">
-              <!-- wordmark -->
-              <div style="font-family:{SERIF};font-size:30px;font-weight:700;
-                          color:{MAST_TEXT};letter-spacing:-0.5px;line-height:1;">
-                ComplianceWatch
-              </div>
-              <div style="margin-top:7px;font-family:{SANS};font-size:11px;
-                          color:{AMBER};text-transform:uppercase;letter-spacing:2.5px;
-                          font-weight:600;">{label}</div>
-            </td>
-            <td align="right" valign="bottom" style="padding-left:16px;">
-              <div style="font-family:{SANS};font-size:10px;color:{MAST_DIM};
-                          text-align:right;text-transform:uppercase;letter-spacing:1px;
-                          line-height:2.0;">{today}<br>{descriptor}</div>
-            </td>
-          </tr>
-        </table>
+      <!-- wordmark -->
+      <mj-text font-family="{SERIF}" font-size="28px" font-weight="700"
+               color="{MAST_TEXT}" letter-spacing="-0.5px" line-height="1"
+               padding="0 0 8px 0">
+        ComplianceWatch
+      </mj-text>
+      <!-- label + date on one line, small -->
+      <mj-text font-family="{SANS}" font-size="10px" color="{AMBER}"
+               text-transform="uppercase" letter-spacing="2px" font-weight="600"
+               padding="0 0 3px 0">
+        {label}
+        <span style="color:{MAST_DIM};margin:0 7px;">&middot;</span>
+        <span style="color:{MAST_DIM};">{today}</span>
+        <span style="color:{MAST_DIM};margin:0 7px;">&middot;</span>
+        <span style="color:{MAST_DIM};">{descriptor}</span>
       </mj-text>
     </mj-column>
   </mj-section>
